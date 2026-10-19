@@ -314,7 +314,7 @@ endif
 else
 	$(eval OCP_VERSION := $(shell oc get clusterversion version -o jsonpath='{.status.desired.version}' | cut -d. -f1,2))
 	@bash -c 'source scripts/lib.sh && \
-		for ns in ansible-aap cert-manager-operator cert-manager openshift-storage metallb-system multicluster-engine openshift-cnv osac-kafka; do \
+		for ns in ansible-aap cert-manager-operator cert-manager openshift-storage metallb-system multicluster-engine open-cluster-management openshift-gitops-operator openshift-gitops openshift-cnv osac-kafka; do \
 			wait_for_namespace_cleanup "$$ns"; \
 		done'
 	helm upgrade --install osac-deps $(DEPS_CHART) \

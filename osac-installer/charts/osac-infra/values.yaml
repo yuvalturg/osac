@@ -97,6 +97,11 @@ mce:
     # verified.
     enabled: true
   osImages: []
+
+acm:
+  # The ACM operator is subscribed by osac-deps; osac-infra creates the hub
+  # resource after the operator's CRD is available.
+  enabled: false
   # Temporary MCE 5.0 operand bridge until a stable MCE 5.0 catalog is
   # available. These overrides render only when mce.enabled is true.
   imageOverrides:

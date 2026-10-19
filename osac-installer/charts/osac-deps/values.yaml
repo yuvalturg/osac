@@ -28,6 +28,15 @@ mce:
   enabled: false
   channel: "stable-2.17"
 
+acm:
+  # ACM owns the hub lifecycle, including its MCE dependency.
+  enabled: false
+  channel: "release-2.18"
+
+gitops:
+  enabled: false
+  channel: "latest"
+
 kafka:
   enabled: false
   channel: "stable"

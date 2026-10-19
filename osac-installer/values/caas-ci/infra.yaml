@@ -16,7 +16,11 @@ metallb:
 cnv:
   enabled: false
 mce:
-  # The CaaS CI profile owns and configures its standalone MCE installation.
+  # ACM owns the MCE lifecycle in this profile.
+  enabled: false
+acm:
+  enabled: true
+gitops:
   enabled: true
 
 # --- Infrastructure (osac-infra) ---

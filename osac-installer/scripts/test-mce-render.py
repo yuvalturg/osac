@@ -35,6 +35,16 @@ INFRA_RESOURCES = (
     ("ClusterRoleBinding", "osac-infra-configure-mce"),
     ("Job", "osac-infra-configure-mce"),
 )
+ACM_DEPS_RESOURCES = (
+    ("Namespace", "open-cluster-management"),
+    ("OperatorGroup", "acm-operator"),
+    ("Subscription", "acm-operator-subscription"),
+)
+GITOPS_DEPS_RESOURCES = (
+    ("Namespace", "openshift-gitops-operator"),
+    ("OperatorGroup", "openshift-gitops-operator"),
+    ("Subscription", "openshift-gitops-operator"),
+)
 CONFIGURE_HOOK_RESOURCES = INFRA_RESOURCES[4:]
 
 
@@ -240,13 +250,25 @@ def check_absent_overrides() -> None:
 
 def check_caas_inherits_defaults() -> None:
     caas_values = yaml.safe_load(CAAS_VALUES.read_text(encoding="utf-8"))
-    assert caas_values["mce"] == {"enabled": True}, "CaaS must explicitly enable MCE without duplicating defaults"
+    assert caas_values["mce"] == {"enabled": False}, "CaaS must disable standalone MCE when ACM owns its lifecycle"
+    assert caas_values["acm"] == {"enabled": True}, "CaaS must explicitly enable ACM"
+    assert caas_values["gitops"] == {"enabled": True}, "CaaS must explicitly enable GitOps"
 
     caas_args = ("--values", str(CAAS_VALUES))
     caas_deps = render("osac-deps", DEPS_CHART, *caas_args)
     caas_infra = render("osac-infra", INFRA_CHART, *caas_args)
-    assert_dependencies_contract(caas_deps, configured_mce(DEPS_CHART, CAAS_VALUES))
-    assert_infrastructure_contract(caas_infra, configured_mce(INFRA_CHART, CAAS_VALUES))
+    assert_absent(caas_deps, DEPS_RESOURCES)
+    acm_namespace, acm_group, acm_subscription = selected(caas_deps, ACM_DEPS_RESOURCES)
+    assert acm_group["metadata"]["namespace"] == acm_namespace["metadata"]["name"]
+    assert acm_subscription["spec"]["name"] == "advanced-cluster-management"
+    assert acm_subscription["spec"]["channel"] == "release-2.18"
+    gitops_namespace, gitops_group, gitops_subscription = selected(caas_deps, GITOPS_DEPS_RESOURCES)
+    assert gitops_group["metadata"]["namespace"] == gitops_namespace["metadata"]["name"]
+    assert gitops_subscription["spec"]["name"] == "openshift-gitops-operator"
+    assert gitops_subscription["spec"]["channel"] == "latest"
+    resource(caas_infra, "ConfigMap", "osac-infra-mce-config")
+    resource(caas_infra, "Job", "osac-infra-configure-acm")
+    assert_absent(caas_infra, INFRA_RESOURCES[4:])
 
 
 def main() -> None:

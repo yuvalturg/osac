@@ -1,0 +1,43 @@
+{{- if .Values.acm.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: open-cluster-management
+  annotations:
+    osac.openshift.io/tenant: platform
+    osac.openshift.io/owner-reference: Subscription/acm-operator-subscription
+  labels:
+    openshift.io/cluster-monitoring: "true"
+    {{- include "osac-deps.labels" . | nindent 4 }}
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: acm-operator
+  namespace: open-cluster-management
+  annotations:
+    osac.openshift.io/tenant: platform
+    osac.openshift.io/owner-reference: Namespace/open-cluster-management
+  labels:
+    {{- include "osac-deps.labels" . | nindent 4 }}
+spec:
+  targetNamespaces:
+    - open-cluster-management
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: acm-operator-subscription
+  namespace: open-cluster-management
+  annotations:
+    osac.openshift.io/tenant: platform
+    osac.openshift.io/owner-reference: OperatorGroup/acm-operator
+  labels:
+    {{- include "osac-deps.labels" . | nindent 4 }}
+spec:
+  channel: {{ .Values.acm.channel }}
+  name: advanced-cluster-management
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+{{- end }}

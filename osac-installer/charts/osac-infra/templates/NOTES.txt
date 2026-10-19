@@ -25,6 +25,9 @@ Components:
 {{- if .Values.mce.enabled }}
   - MultiCluster Engine configuration
 {{- end }}
+{{- if .Values.acm.enabled }}
+  - Advanced Cluster Management hub configuration
+{{- end }}
 {{- if .Values.bundledPostgres.enabled }}
   - Bundled PostgreSQL (dev/CI)
 {{- end }}

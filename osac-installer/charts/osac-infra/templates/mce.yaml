@@ -1,4 +1,4 @@
-{{- if .Values.mce.enabled }}
+{{- if or .Values.mce.enabled .Values.acm.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

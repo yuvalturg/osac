@@ -1,0 +1,106 @@
+{{- if .Values.acm.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: osac-infra-configure-acm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    osac.openshift.io/tenant: platform
+    osac.openshift.io/owner-reference: Subscription/acm-operator-subscription
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: osac-infra-configure-acm
+  annotations:
+    osac.openshift.io/tenant: platform
+    osac.openshift.io/owner-reference: Subscription/acm-operator-subscription
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
+rules:
+  - apiGroups: ["operators.coreos.com"]
+    resources: ["clusterserviceversions"]
+    verbs: ["get", "list"]
+  - apiGroups: ["operator.open-cluster-management.io"]
+    resources: ["multiclusterhubs"]
+    verbs: ["get", "list", "create", "patch", "update"]
+  - apiGroups: ["multicluster.openshift.io"]
+    resources: ["multiclusterengines"]
+    verbs: ["get", "list"]
+  - apiGroups: ["agent-install.openshift.io"]
+    resources: ["agentserviceconfigs"]
+    verbs: ["get", "list", "create", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: osac-infra-configure-acm
+  annotations:
+    osac.openshift.io/tenant: platform
+    osac.openshift.io/owner-reference: Subscription/acm-operator-subscription
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: osac-infra-configure-acm
+subjects:
+  - kind: ServiceAccount
+    name: osac-infra-configure-acm
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: osac-infra-configure-acm
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    osac.openshift.io/tenant: platform
+    osac.openshift.io/owner-reference: Subscription/acm-operator-subscription
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
+    "helm.sh/hook-weight": "10"
+spec:
+  backoffLimit: 5
+  activeDeadlineSeconds: 2400
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      annotations:
+        osac.openshift.io/tenant: platform
+        osac.openshift.io/owner-reference: Subscription/acm-operator-subscription
+    spec:
+      serviceAccountName: osac-infra-configure-acm
+      restartPolicy: OnFailure
+      volumes:
+        - name: scripts
+          configMap:
+            name: osac-infra-hook-scripts
+        - name: config
+          configMap:
+            name: osac-infra-mce-config
+      containers:
+        - name: configure-acm
+          image: {{ .Values.cliImage }}
+          env:
+            - name: HOME
+              value: /tmp
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: config
+              mountPath: /config
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml .Values.hookResources | nindent 12 }}
+          command: ["/bin/bash", "/scripts/configure-acm.sh"]
+{{- end }}

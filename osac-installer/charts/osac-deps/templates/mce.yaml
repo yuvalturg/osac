@@ -1,3 +1,6 @@
+{{- if and .Values.mce.enabled .Values.acm.enabled }}
+{{- fail "mce.enabled and acm.enabled cannot both be true: ACM owns the MCE lifecycle" }}
+{{- end }}
 {{- if .Values.mce.enabled }}
 apiVersion: v1
 kind: Namespace
